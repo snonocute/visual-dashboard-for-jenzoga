@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paris 2027: Interactive Cashflow Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Playfair Display for Parisian Elegance, Montserrat for Clean UI -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #FAF8F5; /* Soft Champagne White */
+            color: #2C2C2C;
+        }
+        .serif-title {
+            font-family: 'Playfair Display', serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(212, 175, 55, 0.15); /* Light gold border */
+        }
+        .accent-gold {
+            color: #C5A880;
+        }
+        .bg-gold {
+            background-color: #C5A880;
+        }
+        .bg-navy {
+            background-color: #1A2E40; /* Paris Night Navy */
+        }
+        .border-gold {
+            border-color: #C5A880;
+        }
+        /* Custom scrollbar for beautiful lists */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAF8F5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #C5A880;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-12">
+
+    <!-- Paris Elegant Navigation Banner -->
+    <nav class="bg-navy text-white py-6 px-4 md:px-8 shadow-md">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-center md:text-left">
+                <span class="text-xs uppercase tracking-widest text-[#E6D5C3]">La Vie en Rose</span>
+                <h1 class="text-2xl md:text-3xl serif-title font-bold mt-1">Paris 2027 Financial Dashboard</h1>
+            </div>
+            <!-- Live Countdown to late Nov 25, 2027 -->
+            <div class="bg-white/10 px-6 py-2 rounded-full border border-[#C5A880]/30 text-center">
+                <span class="text-xs uppercase tracking-wider block text-gray-300">นับถอยหลังสู่วันเดินทาง</span>
+                <span id="countdown-timer" class="font-bold text-sm md:text-base text-[#E6D5C3]">กำลังคำนวณวันเดินทาง...</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Grid -->
+    <main class="max-w-7xl mx-auto px-4 mt-8">
+
+        <!-- Top Stats / Dynamic Summary -->
+        <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Target Budget Card -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute right-3 top-3 opacity-10">
+                    <!-- Eiffel Tower SVG icon -->
+                    <svg class="w-16 h-16 text-gray-800" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L10 9H14L12 2ZM9.5 10L8 16H16L14.5 10H9.5ZM7.5 17L6 22H18L16.5 17H7.5Z"/>
+                    </svg>
+                </div>
+                <div>
+                    <span class="text-xs text-gray-400 uppercase tracking-widest font-semibold block mb-1">งบเที่ยวเป้าหมาย (ของคุณ)</span>
+                    <span class="text-3xl font-bold text-gray-800">130,000 <span class="text-sm font-normal text-gray-500">THB</span></span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">รวมตั๋วบิน Premium Eco, ที่พัก 4 ดาว (หารสอง) & พ็อกเก็ตมันนี่</p>
+            </div>
+
+            <!-- Current Savings Progress -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                <div>
+                    <span class="text-xs text-gray-400 uppercase tracking-widest font-semibold block mb-1">ยอดออมสะสมแล้วจริง</span>
+                    <span id="stat-saved" class="text-3xl font-bold text-gray-800">0 <span class="text-sm font-normal text-gray-500">THB</span></span>
+                </div>
+                <!-- Dynamic progress bar -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div id="stat-progress-bar" class="bg-gold h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center mt-1">
+                    <span id="stat-progress-text" class="text-xs text-gray-500 font-medium">0% ของเป้าหมายทริป</span>
+                    <span class="text-xs text-[#C5A880] font-bold">เป้าหมายสะสมจาก $0 บาท</span>
+                </div>
+            </div>
+
+            <!-- Estimated Cash Outflow -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm flex flex-col justify-between">
+                <div>
+                    <span class="text-xs text-gray-400 uppercase tracking-widest font-semibold block mb-1">แผนรายจ่ายหลักรวม</span>
+                    <span class="text-3xl font-bold text-red-600">-130,000 <span class="text-sm font-normal text-gray-500">THB</span></span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">แบ่งหักเป็น 3 ก้อนหลัก: ตั๋วเครื่องบิน (พ.ค.) ค่าวีซ่า (ก.ย.) และค่าโรงแรม+กินเที่ยว (พ.ย.)</p>
+            </div>
+
+            <!-- Estimated Ending Balance -->
+            <div class="glass-card p-6 rounded-2xl shadow-sm border-l-4 border-gold">
+                <span class="text-xs text-gray-400 uppercase tracking-widest font-semibold block mb-1">เงินคงเหลือยกไปปี 2571</span>
+                <span id="stat-remaining" class="text-3xl font-bold text-[#1A2E40]">70,000 <span class="text-sm font-normal text-gray-500">THB</span></span>
+                <p class="text-xs text-gray-500 mt-2">ยอดออมคงเหลือหลังหักค่าทริปหมดเกลี้ยง เพื่อเป็นทุนสำหรับทริปสวิสปีถัดไป 🇨🇭</p>
+            </div>
+        </section>
+
+        <!-- Charts Layout (Cashflow Trend and Budget Distribution) -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Left 2 Cols: Cashflow Trend -->
+            <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="font-bold text-gray-800">กราฟแนวโน้มกระแสเงินสดสะสม (มี.ค. - ธ.ค. 2570)</h3>
+                        <p class="text-xs text-gray-400">แสดงผลสะสมรายเดือนหลังจากออมและหักลบค่าทริปสำคัญ</p>
+                    </div>
+                    <!-- Reset Button -->
+                    <button onclick="resetData()" class="text-xs px-3 py-1 bg-gray-100 hover:bg-[#C5A880]/20 rounded-lg text-gray-600 hover:text-gray-800 transition-colors">
+                        รีเซ็ตค่าเริ่มต้น
+                    </button>
+                </div>
+                <div class="relative h-[280px] w-full">
+                    <canvas id="cashflowChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Right 1 Col: Paris Budget Allocation -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-gray-800">สัดส่วนค่าใช้จ่ายทริปปารีส</h3>
+                    <p class="text-xs text-gray-400 mb-4">คำนวณเฉลี่ยงบประมาณสูงสุดส่วนบุคคล</p>
+                </div>
+                <div class="relative h-[200px] flex items-center justify-center">
+                    <canvas id="budgetAllocationChart"></canvas>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-100 text-xs space-y-2">
+                    <div class="flex justify-between">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#1A2E40]"></span> ตั๋วบิน Premium Economy</span>
+                        <span class="font-semibold">50,000 THB</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#C5A880]"></span> ค่าโรงแรม 4 ดาว (หาร 2)</span>
+                        <span class="font-semibold">35,000 THB</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-[#D4D4D4]"></span> ค่ากิน ช้อป & พ็อกเก็ตมันนี่</span>
+                        <span class="font-semibold">40,000 THB</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-400"></span> ค่าวีซ่าฝรั่งเศส + ประกันภัย</span>
+                        <span class="font-semibold">5,000 THB</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Savings Ledger Table -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div class="mb-4">
+                    <h3 class="font-bold text-lg text-gray-800">บันทึกสมุดบัญชีรายเดือน พ.ศ. 2570</h3>
+                    <p class="text-xs text-gray-400">สามารถปรับปรุงตัวเลข "ออมเพิ่มจริง" ของคุณและติ๊กเครื่องหมายเพื่อบันทึกสถานะได้เลยค่ะ</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-xs text-gray-400 uppercase tracking-widest">
+                                <th class="pb-3 font-semibold">เดือน</th>
+                                <th class="pb-3 font-semibold text-right">ออมเพิ่มจริง (THB)</th>
+                                <th class="pb-3 font-semibold text-right">รายจ่ายสำคัญ</th>
+                                <th class="pb-3 font-semibold text-right">ยอดคงเหลือสะสม</th>
+                                <th class="pb-3 font-semibold text-center">เสร็จสิ้น</th>
+                            </tr>
+                        </thead>
+                        <tbody id="savings-table-body" class="text-sm">
+                            <!-- JS will inject rows here dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Milestone Timeline & To-Do List -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-lg text-gray-800 mb-1">ตารางกำหนดเวลา & เคล็ดลับ</h3>
+                    <p class="text-xs text-gray-400 mb-6">Milestones การยื่นวีซ่าและจองสิ่งอำนวยความสะดวกให้คุ้มค่า</p>
+
+                    <div class="space-y-6 relative border-l border-gold/30 pl-4 ml-2">
+                        <!-- May Milestone -->
+                        <div class="relative">
+                            <span class="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-gold border-2 border-white flex items-center justify-center"></span>
+                            <h4 class="font-semibold text-sm text-gray-800">จองตั๋วเครื่องบิน (พ.ค. 2570)</h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                เฝ้าจอง Premium Economy สายการบินหลัก เช่น EVA Air, Singapore Airlines ล่วงหน้า 6 เดือน คุมงบ 50,000 บาท หากแพงเกินงบให้สลับเป็น Eco บินตรงแทน
+                            </p>
+                        </div>
+
+                        <!-- June Milestone -->
+                        <div class="relative">
+                            <span class="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-navy border-2 border-white flex items-center justify-center"></span>
+                            <h4 class="font-semibold text-sm text-gray-800">ล็อกดีลโรงแรม (มิ.ย. 2570)</h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                เลือกโรงแรม 4 ดาว ย่านปลอดภัย (เขต 1, 2, 4, 5, 6, 8, 15) ผ่าน Booking.com ที่มีสัญลักษณ์ "ยกเลิกฟรี" ไว้ก่อนเพื่อจำกัดสิทธิ์ราคาดี
+                            </p>
+                        </div>
+
+                        <!-- Sep Milestone -->
+                        <div class="relative">
+                            <span class="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-gold border-2 border-white flex items-center justify-center"></span>
+                            <h4 class="font-semibold text-sm text-gray-800">ยื่นคำร้องขอวีซ่า (ก.ย. 2570)</h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ยื่นขอวีซ่าเชงเก้นผ่านระบบ TLScontact ล่วงหน้า 3 เดือน และซื้อประกันภัยการเดินทางครอบคลุมวันสุดท้ายของทริป
+                            </p>
+                        </div>
+
+                        <!-- Nov Milestone -->
+                        <div class="relative">
+                            <span class="absolute -left-[25px] top-1 w-4 h-4 rounded-full bg-navy border-2 border-white flex items-center justify-center"></span>
+                            <h4 class="font-semibold text-sm text-gray-800">แลกเงิน & บินลัดฟ้า (ต.ค. - พ.ย. 2570)</h4>
+                            <p class="text-xs text-gray-500 mt-1">
+                                สมัครและเปิดใช้งานบัตรรูด Travel Card (YouTrip, Boarding Card) สะสมแลกเงินสกุล Euro ในช่วงเรตต่ำ
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-100 bg-amber-50/50 p-4 rounded-xl text-xs text-gray-600 italic">
+                    💡 <strong>Tips วีซ่าฝรั่งเศส:</strong> การยื่นขอเชงเก้นสามารถเตรียมตัวจองวันนัดล่วงหน้าตั้งแต่สิงหาคม เพื่อป้องกันคิวเต็มช่วงไฮซีซั่นใบไม้ร่วงค่ะ
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-16 text-center text-gray-400 text-xs">
+        <p>© 2569 Paris 2027 Romantic Escape Budget & Saving Calculator</p>
+        <p class="mt-1 text-[#C5A880]">"จากศูนย์บาท สู่หอไอเฟลที่รอเราอยู่"</p>
+    </footer>
+
+    <script>
+        // Default months structured data based on user input
+        const initialMonthsData = [
+            { id: 1, name: 'มีนาคม 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'ยกยอดเริ่มจาก 0 บาท ทริปญี่ปุ่นหมดเรียบร้อย', done: false },
+            { id: 2, name: 'เมษายน 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'ศึกษาเปรียบเทียบย่านโรงแรมที่พักปลอดภัย', done: false },
+            { id: 3, name: 'พฤษภาคม 2570', defaultSavings: 20000, actualSavings: 20000, payout: 50000, desc: 'หักจ่ายตั๋วเครื่องบิน Premium Economy / Eco', done: false },
+            { id: 4, name: 'มิถุนายน 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'ล็อกจองโรงแรมทาง Booking.com แบบยกเลิกฟรี', done: false },
+            { id: 5, name: 'กรกฎาคม 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'เตรียมเอกสารยื่นวีซ่าเชงเก้น', done: false },
+            { id: 6, name: 'สิงหาคม 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'นัดหมายยื่นคำร้อง TLScontact ออนไลน์', done: false },
+            { id: 7, name: 'กันยายน 2570', defaultSavings: 20000, actualSavings: 20000, payout: 50000, payoutDesc: 'วีซ่า+ประกัน 5k', realPayout: 5000, desc: 'จ่ายค่าวีซ่าและเบี้ยประกันเดินทาง', done: false },
+            { id: 8, name: 'ตุลาคม 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'แลกเงินยูโร + สมัคร Travel Card', done: false },
+            { id: 9, name: 'พฤศจิกายน 2570', defaultSavings: 20000, actualSavings: 20000, payout: 75000, desc: 'เดินทาง! จ่ายค่าโรงแรมหน้างาน + เงินกินช้อป', done: false },
+            { id: 10, name: 'ธันวาคม 2570', defaultSavings: 20000, actualSavings: 20000, payout: 0, desc: 'กลับถึงไทย เก็บออมเพิ่มส่งท้ายปี', done: false }
+        ];
+
+        let months = JSON.parse(JSON.stringify(initialMonthsData));
+        let cashflowChart = null;
+        let donutChart = null;
+
+        // Initialize Application
+        window.onload = function() {
+            startCountdown();
+            renderTable();
+            initCharts();
+            recalculateFlows();
+        }
+
+        // Countdown clock to late Nov (Nov 25, 2027)
+        function startCountdown() {
+            const targetDate = new Date("Nov 25, 2027 00:00:00").getTime();
+            
+            function updateTimer() {
+                const now = new Date().getTime();
+                const diff = targetDate - now;
+
+                if (diff < 0) {
+                    document.getElementById('countdown-timer').innerText = "เดินทางปลอดภัยนะคะ! ✈️";
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                document.getElementById('countdown-timer').innerText = `${days} วัน ${hours} ชั่วโมง จนถึงทริปฝัน 🇫🇷`;
+            }
+            updateTimer();
+            setInterval(updateTimer, 60000); // update every minute
+        }
+
+        // Main function to calculate dynamic cumulative balances
+        function recalculateFlows() {
+            let cumulativeBalance = 0;
+            let totalSavedActual = 0;
+            const chartData = [];
+
+            months.forEach(m => {
+                // Add savings to cumulative
+                cumulativeBalance += m.actualSavings;
+                
+                // Track actual savings added so far (if checked as done or just for total tracking)
+                totalSavedActual += m.actualSavings;
+
+                // Subtract expenditure
+                if (m.id === 3) { // May: Tickets
+                    cumulativeBalance -= 50000;
+                } else if (m.id === 7) { // September: Visa & Insurance
+                    cumulativeBalance -= 5000;
+                } else if (m.id === 9) { // November: Hotel & Pocket money
+                    cumulativeBalance -= 75000;
+                }
+
+                chartData.push(cumulativeBalance);
+            });
+
+            // Update stats indicators
+            const totalTarget = 130000;
+            const percentage = Math.min(Math.round((totalSavedActual / 200000) * 100), 100); // 200,000 total potential savings over 10 months
+
+            document.getElementById('stat-saved').innerHTML = `${totalSavedActual.toLocaleString()} <span class="text-sm font-normal text-gray-500">THB</span>`;
+            document.getElementById('stat-progress-bar').style.width = `${percentage}%`;
+            document.getElementById('stat-progress-text').innerText = `${percentage}% ของโควตากล่องออมสะสม`;
+            document.getElementById('stat-remaining').innerHTML = `${cumulativeBalance.toLocaleString()} <span class="text-sm font-normal text-gray-500">THB</span>`;
+
+            // Update Line Chart data
+            if (cashflowChart) {
+                cashflowChart.data.datasets[0].data = chartData;
+                cashflowChart.update();
+            }
+
+            // Keep the dynamic table balances updated in view
+            updateTableBalances(chartData);
+        }
+
+        // Populate and update table UI
+        function renderTable() {
+            const tableBody = document.getElementById('savings-table-body');
+            tableBody.innerHTML = '';
+
+            months.forEach((m, idx) => {
+                let payoutText = '-';
+                if (m.id === 3) payoutText = '<span class="text-red-500 font-semibold">-50,000 THB</span><br><span class="text-[10px] text-gray-400">ตั๋วเครื่องบิน</span>';
+                if (m.id === 7) payoutText = '<span class="text-red-500 font-semibold">-5,000 THB</span><br><span class="text-[10px] text-gray-400">วีซ่า + ประกัน</span>';
+                if (m.id === 9) payoutText = '<span class="text-red-500 font-semibold">-75,000 THB</span><br><span class="text-[10px] text-gray-400">โรงแรม + พ็อกเก็ต</span>';
+
+                const row = document.createElement('tr');
+                row.className = "border-b border-gray-50 hover:bg-gray-50/50 transition-colors";
+                row.innerHTML = `
+                    <td class="py-4">
+                        <span class="font-semibold text-gray-800">${m.name}</span>
+                        <p class="text-[11px] text-gray-400 mt-0.5">${m.desc}</p>
+                    </td>
+                    <td class="py-4 text-right">
+                        <input type="number" value="${m.actualSavings}" 
+                            onchange="updateSavingsValue(${m.id}, this.value)" 
+                            class="w-24 text-right bg-gray-50 border border-gray-200 rounded-lg py-1 px-2 focus:ring-1 focus:ring-gold focus:outline-none text-gray-700 font-medium">
+                    </td>
+                    <td class="py-4 text-right text-xs">
+                        ${payoutText}
+                    </td>
+                    <td class="py-4 text-right font-bold text-[#1A2E40]" id="balance-cell-${m.id}">
+                        0 THB
+                    </td>
+                    <td class="py-4 text-center">
+                        <input type="checkbox" ${m.done ? 'checked' : ''} 
+                            onchange="toggleDone(${m.id})" 
+                            class="w-4 h-4 text-[#C5A880] focus:ring-[#C5A880] border-gray-300 rounded cursor-pointer">
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateTableBalances(balances) {
+            months.forEach((m, idx) => {
+                const cell = document.getElementById(`balance-cell-${m.id}`);
+                if (cell) {
+                    cell.innerText = `${balances[idx].toLocaleString()} THB`;
+                    if (balances[idx] < 0) {
+                        cell.className = "py-4 text-right font-bold text-red-500";
+                    } else {
+                        cell.className = "py-4 text-right font-bold text-[#1A2E40]";
+                    }
+                }
+            });
+        }
+
+        // Change values triggers recalculation
+        function updateSavingsValue(id, val) {
+            const num = parseInt(val) || 0;
+            const target = months.find(m => m.id === id);
+            if (target) {
+                target.actualSavings = num;
+                recalculateFlows();
+            }
+        }
+
+        function toggleDone(id) {
+            const target = months.find(m => m.id === id);
+            if (target) {
+                target.done = !target.done;
+                recalculateFlows();
+            }
+        }
+
+        function resetData() {
+            months = JSON.parse(JSON.stringify(initialMonthsData));
+            renderTable();
+            recalculateFlows();
+        }
+
+        function initCharts() {
+            // Line Chart: Balance Trend
+            const lineCtx = document.getElementById('cashflowChart').getContext('2d');
+            cashflowChart = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: months.map(m => m.name.split(' ')[0]), // Show only month names
+                    datasets: [{
+                        label: 'เงินสะสมในกระปุกท่องเที่ยว (บาท)',
+                        data: [],
+                        borderColor: '#C5A880',
+                        backgroundColor: 'rgba(197, 168, 128, 0.1)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 6,
+                        pointBackgroundColor: '#1A2E40',
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.03)' },
+                            ticks: {
+                                callback: function(value) { return value.toLocaleString() + ' ฿'; }
+                            }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Donut Chart: Budget Allocation
+            const donutCtx = document.getElementById('budgetAllocationChart').getContext('2d');
+            donutChart = new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ตั๋วบิน', 'โรงแรม', 'กินเที่ยว/ช้อป', 'วีซ่า/ประกัน'],
+                    datasets: [{
+                        data: [50000, 35000, 40000, 5000],
+                        backgroundColor: ['#1A2E40', '#C5A880', '#E5DDD3', '#F3A39F'],
+                        hoverOffset: 4,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    cutout: '75%'
+                }
+            });
+        }
+    </script>
+</body>
+</html>
